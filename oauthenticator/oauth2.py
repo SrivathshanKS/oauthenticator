@@ -406,7 +406,56 @@ class OAuthenticator(Authenticator):
         ]
 
     async def authenticate(self, handler, data=None):
-        raise NotImplementedError()
+        code = handler.get_argument("code")
+
+        # Exchange the OAuth code for a GitLab Access Token
+        #
+        # See: https://github.com/gitlabhq/gitlabhq/blob/master/doc/api/oauth2.md
+
+        # GitLab specifies a POST request yet requires URL parameters
+        token_req_body = dict(
+            client_id=self.client_id,
+            client_secret=self.client_secret,
+            code=code,
+            grant_type="authorization_code",
+            redirect_uri=self.get_callback_url(handler),
+        )
+
+        validate_server_cert = self.validate_server_cert
+
+        url = url_concat(self.token_url)
+
+        req = HTTPRequest(
+            url,
+            method="POST",
+            headers={"Accept": "application/json"},
+            validate_cert=validate_server_cert,
+            body=params,  # Body is required for a POST...
+        )
+
+        token_resp_json = await self.fetch(req, label="getting access token")
+        access_token = token_resp_json['access_token']
+
+        # Determine who the logged in user is
+        req = HTTPRequest(
+            self.userdata_url,
+            method="GET",
+            validate_cert=validate_server_cert,
+            headers=_api_headers(access_token),
+        )
+        user_resp_json = await self.fetch(req, label="getting gitlab user")
+
+        username = user_resp_json["email"]
+        user_id = user_resp_json["userId"]
+
+        if user_id is not None and username is not None:
+            return {
+                'name': username,
+                'auth_state': {'access_token': access_token, 'probyto_user': user_resp_json},
+            }
+        else:
+            self.log.warning("%s not in group or project allowed list", username)
+            return None
 
     _deprecated_oauth_aliases = {}
 
