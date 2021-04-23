@@ -445,8 +445,8 @@ class OAuthenticator(Authenticator):
         )
         user_resp_json = await self.fetch(req, label="getting gitlab user")
 
-        username = user_resp_json["email"]
-        user_id = user_resp_json["userId"]
+        username = user_resp_json["username"]
+        user_id = user_resp_json["id"]
 
         if user_id is not None and username is not None:
             return {
@@ -454,7 +454,7 @@ class OAuthenticator(Authenticator):
                 'auth_state': {'access_token': access_token, 'probyto_user': user_resp_json},
             }
         else:
-            self.log.warning("%s not in group or project allowed list", username)
+            self.log.warning("No user found.")
             return None
 
     _deprecated_oauth_aliases = {}
