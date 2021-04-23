@@ -408,11 +408,7 @@ class OAuthenticator(Authenticator):
     async def authenticate(self, handler, data=None):
         code = handler.get_argument("code")
 
-        # Exchange the OAuth code for a GitLab Access Token
-        #
-        # See: https://github.com/gitlabhq/gitlabhq/blob/master/doc/api/oauth2.md
-
-        # GitLab specifies a POST request yet requires URL parameters
+        # Exchange the OAuth code for Access Token
         token_req_body = dict(
             client_id=self.client_id,
             client_secret=self.client_secret,
